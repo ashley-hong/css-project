@@ -7,6 +7,10 @@ Running log of decisions made while building the Dock Scheduling System, for the
 - **Prisma ORM**, SQLite for local development, switching the datasource to a hosted Postgres (e.g. Neon) for production, since Vercel's filesystem is not persistent/writable at runtime.
 - **Tailwind CSS** for styling — fast to build a calendar/grid UI with.
 
+## Deployment
+- Local dev uses SQLite via `@prisma/adapter-better-sqlite3`. Production is meant to run on Vercel, whose filesystem isn't writable/persistent, so `src/lib/prisma.ts` switches to `@prisma/adapter-libsql` (Turso, a hosted SQLite-compatible DB) whenever `DATABASE_URL` starts with `libsql:` — same Prisma schema/provider either way, only the driver adapter and connection string differ, so no data-model migration is needed to go from dev to prod.
+- Getting an actual public URL requires a Vercel + Turso account, which I don't have credentials for in this environment — see `DEPLOY.md` for the exact steps left for a human to do (account signup, connecting the repo, setting two env vars, then running `prisma migrate deploy` and the import script once against the production database).
+
 ## Data model
 - The source spreadsheet has no explicit start/end dates or ranges — a multi-day booking is just the same vessel/event name typed into consecutive day-cells by hand. We normalize this into real `Booking(start_date, end_date)` rows on import by collapsing consecutive identical-name cells on the same berth row into one range.
 - Berth length is embedded in the row label as free text (e.g. `North Pier East - 240'`). We parse this into a canonical `Berth(name, length_ft)` table once, rather than re-parsing the label on every read.
