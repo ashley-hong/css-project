@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Berth {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  lengthFt  Float
+  active    Boolean  @default(true)
+  aliases   BerthAlias[]
+  bookings  Booking[]
+}
+
+// Historical name variants for the same physical berth, seen across different
+// years' sheets in the source spreadsheet (renames/reorganizations over time).
+model BerthAlias {
+  id      Int    @id @default(autoincrement())
+  alias   String @unique
+  berth   Berth  @relation(fields: [berthId], references: [id])
+  berthId Int
+}
+
+model Vessel {
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  loaFt        Float?
+  operator     String?
+  contactInfo  String?
+  notes        String?
+  bookings     Booking[]
+}
+
+model Booking {
+  id         Int      @id @default(autoincrement())
+  berth      Berth    @relation(fields: [berthId], references: [id])
+  berthId    Int
+  vessel     Vessel?  @relation(fields: [vesselId], references: [id])
+  vesselId   Int?
+  // For non-vessel occupants (e.g. "Community sail day") that have no Vessel record.
+  eventLabel String?
+  startDate  DateTime
+  endDate    DateTime
+  // Where this record came from, e.g. "import:1997" or "manual" — lets us trace
+  // imported historical rows back to their source sheet.
+  source     String
+  createdAt  DateTime @default(now())
+
+  @@index([berthId, startDate, endDate])
+}
